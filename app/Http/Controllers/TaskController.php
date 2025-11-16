@@ -11,9 +11,13 @@ class TaskController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $tasks = Task::select('title', 'description', 'status')->orderBy('created_at', 'desc')->get();
+        $tasks = Task::where('user_id', $request->user()->id)
+            ->select('title', 'description', 'status')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return response()->json($tasks);
     }
 
@@ -28,21 +32,28 @@ class TaskController extends Controller
             'status' => 'required|string|in:pending,in_progress,done',
         ]);
 
-        $task = Task::create($request->only(['title', 'description', 'status']));
+        $task = Task::create([
+            'title'       => $request->title,
+            'description' => $request->description,
+            'status'      => $request->status,
+            'user_id'     => $request->user()->id,
+        ]);
         return response()->json($task, 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
-        //оставила find, а не findOrFail, чтобы ошибка при неправильном id была нагляднее
-        $task = Task::find($id);
+        $task = Task::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
         if (!$task) {
             return response()->json('Task not found', 404);
         }
-        
+
         return response()->json($task);
     }
 
@@ -51,6 +62,10 @@ class TaskController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $task = Task::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
         $task = Task::find($id);
         if (!$task) {
             return response()->json('Task not found', 404);
@@ -68,9 +83,12 @@ class TaskController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
-        $task = Task::find($id);
+        $task = Task::where('id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
         if (!$task) {
             return response()->json('Task not found', 404);
         }
